@@ -10,6 +10,7 @@ import unicodedata
 import pyspark.sql.dataframe
 from pyspark.ml.feature import Imputer
 
+from optimus.utilities import backtick
 
 class DataFrameTransformer:
     """DataFrameTransformer is a class to make transformations in dataFrames"""
@@ -218,9 +219,9 @@ class DataFrameTransformer:
 
         # Function to trim spaces in columns with strings datatype
         def col_trim(columns):
-            exprs = [trim(col(c)).alias(c)
+            exprs = [trim(col(backtick(c))).alias(c)
                      if (c in columns) and (c in valid_cols)
-                     else c
+                     else backtick(c)
                      for (c, t) in self._df.dtypes]
             self._df = self._df.select(*exprs)
 
@@ -241,7 +242,6 @@ class DataFrameTransformer:
 
         # Trimming spaces in columns:
         col_trim(columns)
-
         self._add_transformation()
 
         # Returning the transformer object for able chaining operations
@@ -255,7 +255,7 @@ class DataFrameTransformer:
         """
 
         def col_drop(columns):
-            exprs = filter(lambda c: c not in columns, self._df.columns)
+            exprs = filter(lambda c: c not in columns, [backtick(c) for c in self._df.columns])
             self._df = self._df.select(*exprs)
 
         # Check if columns argument must be a string or list datatype:
@@ -268,7 +268,7 @@ class DataFrameTransformer:
         self._assert_cols_in_df(columns_provided=columns, columns_df=self._df.columns)
 
         # Calling colDrop function
-        col_drop(columns)
+        col_drop([backtick(c) for c in columns])
 
         self._add_transformation()
 
@@ -327,8 +327,7 @@ class DataFrameTransformer:
             col_not_valids == set()), 'Error: The following columns do not have same datatype argument provided: %s' % \
                                       col_not_valids
 
-        col_replace(columns)
-
+        col_replace([backtick(c) for c in columns])
         self._add_transformation()
 
         # Returning the transformer object for able chaining operations
@@ -376,7 +375,7 @@ class DataFrameTransformer:
             assert False, "Error, data_type not recognized"
 
         def col_set(columns, function):
-            exprs = [function(col(c)).alias(c) if c in columns else c for (c, t) in self._df.dtypes]
+            exprs = [function(col(backtick(c))).alias(c) if c in columns else backtick(c) for (c, t) in self._df.dtypes]
             try:
                 self._df = self._df.select(*exprs)
             except Exception as e:
@@ -403,9 +402,7 @@ class DataFrameTransformer:
         assert (
             col_not_valids == set()), 'Error: The following columns do not have same datatype argument provided: %s' \
                                       % col_not_valids
-
         col_set(columns, function)
-
         self._add_transformation()  # checkpoint in case
 
         # Returning the transformer object for able chaining operations
@@ -421,7 +418,7 @@ class DataFrameTransformer:
         """
 
         def col_keep(columns):
-            exprs = filter(lambda c: c in columns, self._df.columns)
+            exprs = filter(lambda c: c in columns, [backtick(c) for c in self._df.columns])
             self._df = self._df.select(*exprs)
 
         # Check if columns argument must be a string or list datatype:
@@ -434,7 +431,7 @@ class DataFrameTransformer:
         self._assert_cols_in_df(columns_provided=columns, columns_df=self._df.columns)
 
         # Calling colDrop function
-        col_keep(columns)
+        col_keep([backtick(c) for c in columns])
 
         self._add_transformation()  # checkpoint in case
 
