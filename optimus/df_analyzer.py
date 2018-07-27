@@ -23,6 +23,7 @@ from deprecated import deprecated
 # Import profiler
 import spark_df_profiling_optimus
 
+from optimus.utilities import backtick
 
 class ColumnTables:
     """
@@ -317,6 +318,7 @@ class DataFrameAnalyzer:
         """
         t = time.time()
         sample_table_dict = {'string': 0., 'integer': 0, 'float': 0}
+
         # Calling verification ruotine to obtain datatype's counts
         # returns: [dataframeColumn, number of nulls, number of strings, number of integers, number of floats]
         dtype_numbers = self._verification(df_col_analyzer.select(column), column)
@@ -368,7 +370,7 @@ class DataFrameAnalyzer:
 
         # Obtaining number of strings and numbers to decide what type of histogram (numerical
         # or categorical is needed)
-        string_qty = dtype_numbers[3]
+        string_qty = dtype_numbers[3] 
         number_qty = np.sum(dtype_numbers[4:])
 
         # Plotting histograms:
@@ -377,7 +379,6 @@ class DataFrameAnalyzer:
             # Building histogram:
             hist_dict = self.get_categorical_hist(df_col_analyzer.select(column), num_bars)
             hist_plot = {"data": hist_dict}
-
             if plots:
                 self.plot_hist(
                     column=column,
@@ -386,7 +387,8 @@ class DataFrameAnalyzer:
                 plt.show()
         elif string_qty < number_qty:
             # Building histogram:
-            hist_dict = self.get_numerical_hist(df_col_analyzer.select(column), num_bars)
+            selection = df_col_analyzer.select(column)
+            hist_dict = self.get_numerical_hist(selection, num_bars)
             hist_plot = {"data": hist_dict}
 
             if plots:
@@ -644,6 +646,7 @@ class DataFrameAnalyzer:
         # In case first is not set, this will analyze all columns
         for column in columns:
             # Calling function analyze:
+            column = backtick(column)
             inv_col, _, _, d = self._analyze(
                 df_col_analyzer.select(column),
                 column,
@@ -664,9 +667,9 @@ class DataFrameAnalyzer:
 
         invalid_cols = list(filter(lambda x: x != False, invalid_cols))
 
-        json_cols = self._create_dict(["summary", "columns"], [self.general_description(), json_cols])
+        #json_cols = self._create_dict(["summary", "columns"], [self.general_description(), json_cols])
         if print_all:
-            return invalid_cols, json_cols
+            return invalid_cols #, json_cols
 
     def plot_hist(self, column, type_hist, values_bar=True):
         """
@@ -689,7 +692,7 @@ class DataFrameAnalyzer:
         df_one_col = self._df.select(column)
 
         # Getting column of dataframe provided
-        column_plot = df_one_col.columns[0]
+        column_plot = backtick(df_one_col.columns[0])
 
         if type_hist == 'categorical':
             # Plotting histogram
@@ -713,7 +716,7 @@ class DataFrameAnalyzer:
         assert df_one_col.dtypes[0][1] == 'string', "Error, Dataframe column must be string data type."
 
         # Column Name
-        column = df_one_col.columns[0]
+        column = backtick(df_one_col.columns[0])
 
         df_keys = df_one_col.select(column) \
             .groupBy(column).count() \
@@ -738,10 +741,8 @@ class DataFrameAnalyzer:
         assert len(df_one_col.columns) == 1, "Error, Dataframe provided must have only one column."
 
         # Column Name
-        column = df_one_col.columns[0]
-
+        column = backtick(df_one_col.columns[0])
         temp_df = df_one_col.withColumn(column, col(column).cast('float')).na.drop(subset=column)
-
         # If we obtain a null column:
         assert not isinstance(temp_df.first(), type(None)), \
             "Error, Make sure column dataframe has numerical features. One of the first actions \
@@ -752,7 +753,6 @@ class DataFrameAnalyzer:
         # Getting min and max values:
         min_value = temp_df.select(cmin(col(column))).first()[0]
         max_value = temp_df.select(cmax(col(column))).first()[0]
-
         # Numero de valores entre el máximo y el minimo:
         steps_value = (max_value - min_value) / num_bars
 
@@ -841,7 +841,7 @@ class DataFrameAnalyzer:
         """
 
         assert column, "Error, column name must be string type."
-
+        column = backtick(column)
         total = self._df.select(column).count()
         distincts = self._df.select(column).distinct().count()
 
@@ -867,6 +867,32 @@ class DataFrameAnalyzer:
         cor = Correlation.corr(self._df, vec_col, method).head()[0].toArray()
         return sns.heatmap(cor, mask=np.zeros_like(cor, dtype=np.bool), cmap=sns.diverging_palette(220, 10,
                                                                                                    as_cmap=True))
+
+    def check_point(self):
+
+        """
+        This method is a very useful function to break lineage of transformations. By default Spark uses the lazy
+        evaluation approach in processing data: transformation functions are not computed into an action is called.
+        Sometimes when transformations are numerous, the computations are very extensive because the high number of
+        operations that spark needs to run in order to get the results.
+
+        Other important thing is that apache spark usually save task but not result of dataFrame, so tasks are
+        accumulated and the same situation happens.
+
+        The problem can be deal it with the checkPoint method. This method save the resulting dataFrame in disk, so
+         the lineage is cut.
+        """
+
+        # Checkpointing of dataFrame. One question can be thought. Why not use cache() or persist() instead of
+        # checkpoint. This is because cache() and persis() apparently do not break the lineage of operations,
+        print("Saving changes at disk by checkpoint...")
+        self._df.checkpoint()
+        self._df.count()
+        self._df = self._sql_context.createDataFrame(self._df, self._df.schema)
+        print("Done.")
+        return
+
+    execute = check_point
 
     @classmethod
     def write_json(cls, json_cols, path_to_json_file):
@@ -921,6 +947,7 @@ class DataFrameAnalyzer:
         def frequency(columns, sort_by_count):
             if sort_by_count:
                 for column in columns:
+                    column = backtick(column)
                     freq = (self._df
                             .groupBy(column)
                             .count()
@@ -932,6 +959,7 @@ class DataFrameAnalyzer:
                         freq.show()
             else:
                 for column in columns:
+                    column = backtick(column)                    
                     freq = (self._df
                             .groupBy(column)
                             .count())

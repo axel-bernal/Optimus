@@ -429,3 +429,10 @@ class Airtable:
         col_names = {'newNames': 'Code Name', 'oldNames': 'Feature Name'}
         return list(zip(self.extract_col_from_df(self._air_table, col_names[names]),
                         self.extract_col_from_df(self._air_table, 'DataType')))
+
+
+def backtick(column):
+    if "." in column:
+        return "`{}`".format(column)
+    return column
+

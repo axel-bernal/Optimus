@@ -69,30 +69,30 @@ try:
 
     init_spark()
 
-    print_html(
-        """
-        <div style="margin:10px">
-            <a href="https://github.com/ironmussa/Optimus" target="_new">
-                <img src="https://github.com/ironmussa/Optimus/raw/master/images/robotOptimus.png" style="float:left;margin-right:10px;vertical-align:top;text-align:center" height="50" width="50"/>
-            </a>
-            <span>{0}</span>
-        </div>
-        """.format("<b><h2>" + SUCCESS + "</h2></b>")
-    )
+#    print_html(
+#        """
+#        <div style="margin:10px">
+#            <a href="https://github.com/ironmussa/Optimus" target="_new">
+#                <img src="https://github.com/ironmussa/Optimus/raw/master/images/robotOptimus.png" style="float:left;margin-right:10px;vertical-align:top;text-align:center" height="50" width="50"/>
+#            </a>
+#            <span>{0}</span>
+#        </div>
+#        """.format("<b><h2>" + SUCCESS + "</h2></b>")
+#    )
 except Exception:
     print("Shell detected")
 
     init_spark()
 
-    print(SUCCESS)
-    print("""
-   ____        __  _                     
-  / __ \____  / /_(_)___ ___  __  _______
- / / / / __ \/ __/ / __ `__ \/ / / / ___/
-/ /_/ / /_/ / /_/ / / / / / / /_/ (__  ) 
-\____/ .___/\__/_/_/ /_/ /_/\__,_/____/  
-    /_/                                  
-    """)
+#    print(SUCCESS)
+#    print("""
+#   ____        __  _                     
+#  / __ \____  / /_(_)___ ___  __  _______
+# / / / / __ \/ __/ / __ `__ \/ / / / ___/
+#/ /_/ / /_/ / /_/ / / / / / / /_/ (__  ) 
+#\____/ .___/\__/_/_/ /_/ /_/\__,_/____/  
+#    /_/                                  
+#    """)
 
 # module level doc-string
 __doc__ = """
