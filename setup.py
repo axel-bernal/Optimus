@@ -10,8 +10,8 @@ def get_version():
                          version_file.read()).group('version')
 
 
-if sys.version_info < (3, 6):
-    raise RuntimeError('This version requires Python 3.6+')  # pragma: no cover
+if sys.version_info < (3, 5):
+    raise RuntimeError('This version requires Python 3.5+')  # pragma: no cover
 
 
 def readme():
